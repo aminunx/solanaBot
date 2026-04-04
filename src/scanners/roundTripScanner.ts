@@ -18,9 +18,14 @@ export async function scanRoundTrips(params: {
   rows: RoundTripCandidate[];
   best: RoundTripCandidate | null;
 }> {
-  const tokenUsd = await params.jupiter.deriveTokenUsdPrices();
+  const [tokenUsd, priorityFeeLamports] = await Promise.all([
+    params.jupiter.deriveTokenUsdPrices(),
+    getMedianPriorityFeeLamports(params.connection)
+  ]);
   const tasks = ROUND_TRIP_MARKETS.flatMap((market) =>
-    amountsForMarket(market).map((amount) => scanSingleMarket(params.connection, params.jupiter, market, amount, tokenUsd))
+    amountsForMarket(market).map((amount) =>
+      scanSingleMarket(params.jupiter, market, amount, tokenUsd, priorityFeeLamports)
+    )
   );
   const results = (await Promise.all(tasks)).filter((value): value is RoundTripCandidate => value !== null);
   results.sort((a, b) => b.netProfitUsd - a.netProfitUsd);
@@ -33,24 +38,21 @@ export async function scanRoundTrips(params: {
 }
 
 async function scanSingleMarket(
-  connection: Connection,
   jupiter: JupiterClient,
   market: RoundTripMarket,
   inputAmount: bigint,
-  tokenUsd: TokenUsdPrices
+  tokenUsd: TokenUsdPrices,
+  priorityFeeLamports: bigint
 ): Promise<RoundTripCandidate | null> {
   const inputToken = TOKENS[market.inputSymbol];
   const midToken = TOKENS[market.midSymbol];
   try {
-    const [buyQuote, priorityFeeLamports] = await Promise.all([
-      jupiter.getQuote({
-        inputMint: inputToken.mint,
-        outputMint: midToken.mint,
-        amount: inputAmount,
-        slippageBps: env.SCANNER_SLIPPAGE_BPS
-      }),
-      getMedianPriorityFeeLamports(connection)
-    ]);
+    const buyQuote = await jupiter.getQuote({
+      inputMint: inputToken.mint,
+      outputMint: midToken.mint,
+      amount: inputAmount,
+      slippageBps: env.SCANNER_SLIPPAGE_BPS
+    });
 
     const midAmount = BigInt(buyQuote.outAmount);
     if (midAmount <= 0n) {

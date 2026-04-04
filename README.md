@@ -19,6 +19,7 @@ Main documents:
 - `docs/PRD_2026-04-05.md`
 - `docs/SOURCES_2026-04-05.md`
 - `docs/WORKPLAN_2026-04-05.md`
+- `docs/SERVER_VALIDATION_2026-04-05.md`
 
 Main runtimes:
 
