@@ -20,8 +20,10 @@ Main documents:
 - `docs/SOURCES_2026-04-05.md`
 - `docs/WORKPLAN_2026-04-05.md`
 - `docs/SERVER_VALIDATION_2026-04-05.md`
+- `docs/LIVE_SCAN_LOOP_2026-04-05.md`
 
 Main runtimes:
 
 - `pnpm scan:live`
 - `pnpm execute:prepare`
+- `pnpm watch:scan`

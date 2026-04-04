@@ -9,7 +9,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "scan:live": "tsx src/runtime/scan.ts",
-    "execute:prepare": "tsx src/runtime/prepareExecution.ts"
+    "execute:prepare": "tsx src/runtime/prepareExecution.ts",
+    "watch:scan": "tsx src/runtime/watchScan.ts"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.4",
