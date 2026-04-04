@@ -2,6 +2,11 @@
 
 Solana mainnet arbitrage and execution bot with strict no-loss gating.
 
+Initial market universe:
+
+- `SOL/USDC/SOL`
+- `USDC/SOL/USDC`
+
 Current phase:
 
 - latest-source research complete

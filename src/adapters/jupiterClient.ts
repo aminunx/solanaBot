@@ -35,32 +35,16 @@ export class JupiterClient {
   }
 
   async deriveTokenUsdPrices(): Promise<Record<string, number>> {
-    const [solUsdc, jupUsdc, bonkUsdc] = await Promise.all([
-      this.getQuote({
-        inputMint: TOKENS.SOL.mint,
-        outputMint: TOKENS.USDC.mint,
-        amount: 1_000_000_000n,
-        slippageBps: env.SCANNER_SLIPPAGE_BPS
-      }),
-      this.getQuote({
-        inputMint: TOKENS.JUP.mint,
-        outputMint: TOKENS.USDC.mint,
-        amount: 1_000_000n,
-        slippageBps: env.SCANNER_SLIPPAGE_BPS
-      }),
-      this.getQuote({
-        inputMint: TOKENS.BONK.mint,
-        outputMint: TOKENS.USDC.mint,
-        amount: 100_000_000n,
-        slippageBps: env.SCANNER_SLIPPAGE_BPS
-      })
-    ]);
+    const solUsdc = await this.getQuote({
+      inputMint: TOKENS.SOL.mint,
+      outputMint: TOKENS.USDC.mint,
+      amount: 1_000_000_000n,
+      slippageBps: env.SCANNER_SLIPPAGE_BPS
+    });
 
     return {
       SOL: Number(solUsdc.outAmount) / 1_000_000,
-      USDC: 1,
-      JUP: Number(jupUsdc.outAmount) / 1_000_000,
-      BONK: Number(bonkUsdc.outAmount) / 1_000_000 / 1000
+      USDC: 1
     };
   }
 }
