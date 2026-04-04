@@ -3,7 +3,10 @@ import { env } from "../config/env.js";
 import type { JupiterQuote } from "../types.js";
 
 export class JupiterClient {
-  constructor(private readonly baseUrl: string) {}
+  constructor(
+    private readonly baseUrl: string,
+    private readonly apiKey: string
+  ) {}
 
   async getQuote(params: {
     inputMint: string;
@@ -11,7 +14,7 @@ export class JupiterClient {
     amount: bigint;
     slippageBps: number;
   }): Promise<JupiterQuote> {
-    const url = new URL("/swap/v1/quote", this.baseUrl);
+    const url = new URL("/swap/v1/quote", resolveBaseUrl(this.baseUrl, this.apiKey));
     url.searchParams.set("inputMint", params.inputMint);
     url.searchParams.set("outputMint", params.outputMint);
     url.searchParams.set("amount", params.amount.toString());
@@ -19,7 +22,8 @@ export class JupiterClient {
 
     const response = await fetch(url, {
       headers: {
-        Accept: "application/json"
+        Accept: "application/json",
+        ...(this.apiKey ? { "x-api-key": this.apiKey } : {})
       }
     });
 
@@ -59,4 +63,16 @@ export class JupiterClient {
       BONK: Number(bonkUsdc.outAmount) / 1_000_000 / 1000
     };
   }
+}
+
+function resolveBaseUrl(baseUrl: string, apiKey: string): string {
+  if (apiKey) {
+    return baseUrl;
+  }
+
+  if (baseUrl === "https://api.jup.ag") {
+    return "https://lite-api.jup.ag";
+  }
+
+  return baseUrl;
 }

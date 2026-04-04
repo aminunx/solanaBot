@@ -9,6 +9,7 @@ const envSchema = z.object({
   JITO_BLOCK_ENGINE_URL: z.string().url(),
   JITO_AUTH_HEADER: z.string().default(""),
   JUPITER_API_BASE_URL: z.string().url().default("https://api.jup.ag"),
+  JUPITER_API_KEY: z.string().default(""),
   MIN_NET_PROFIT_USD: z.coerce.number().min(0).default(0),
   SAFETY_BUFFER_USD: z.coerce.number().min(0).default(0.05),
   PRIORITY_FEE_MULTIPLIER: z.coerce.number().positive().default(1.2),

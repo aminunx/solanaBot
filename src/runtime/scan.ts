@@ -5,7 +5,7 @@ import { scanRoundTrips } from "../scanners/roundTripScanner.js";
 
 async function main(): Promise<void> {
   const connection = createSolanaConnection();
-  const jupiter = new JupiterClient(env.JUPITER_API_BASE_URL);
+  const jupiter = new JupiterClient(env.JUPITER_API_BASE_URL, env.JUPITER_API_KEY);
   const summary = await scanRoundTrips({
     connection,
     jupiter
