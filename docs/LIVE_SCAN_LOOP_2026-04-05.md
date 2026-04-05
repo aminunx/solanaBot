@@ -1,4 +1,4 @@
-# Solana Live Scan Loop — 2026-04-05
+# Solana Live Scan Loop - 2026-04-05
 
 ## Purpose
 Run a continuous Solana mainnet scan loop on the server without sending transactions.
@@ -17,7 +17,19 @@ pnpm watch:scan
   - `status = no_candidate`
   - or `status = candidate`
 
-## Why This Exists
-The correct next step before any sender path on Solana is to observe whether the chosen no-loss law ever produces a live candidate on real market data.
+## Current Scan Model
+- price reference: Jupiter
+- direct buy/sell venues: Raydium and Orca
+- current markets:
+  - `SOL/USDC/SOL`
+  - `USDC/SOL/USDC`
+  - `SOL/cbBTC/SOL`
+  - `USDC/cbBTC/USDC`
+  - `SOL/TRUMP/SOL`
+  - `SOL/PUMP/SOL`
+  - `SOL/JLP/SOL`
+  - `SOL/Fartcoin/SOL`
+  - `SOL/JUP/SOL`
 
-If it does not, then the next engineering task is not “send faster” but “expand market coverage or improve route logic”.
+## Current Interpretation
+If the loop keeps returning `no_candidate`, the correct next step is not to enable live sending anyway. The correct next step is to widen direct venue coverage or change market selection based on measured raw venue spreads.

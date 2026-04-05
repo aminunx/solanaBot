@@ -2,6 +2,8 @@ import { appendFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { JupiterClient } from "../adapters/jupiterClient.js";
+import { OrcaClient } from "../adapters/orcaClient.js";
+import { RaydiumClient } from "../adapters/raydiumClient.js";
 import { createSolanaConnection } from "../adapters/solanaRpc.js";
 import { env } from "../config/env.js";
 import { scanRoundTrips } from "../scanners/roundTripScanner.js";
@@ -17,6 +19,8 @@ function sleep(ms: number): Promise<void> {
 async function main(): Promise<void> {
   const connection = createSolanaConnection();
   const jupiter = new JupiterClient(env.JUPITER_API_BASE_URL, env.JUPITER_API_KEY);
+  const raydium = new RaydiumClient(env.RAYDIUM_API_BASE_URL);
+  const orca = new OrcaClient(env.ORCA_API_BASE_URL, env.SOLANA_RPC_URL);
   await mkdir(ARTIFACTS_DIR, { recursive: true });
 
   let cycle = 0;
@@ -24,7 +28,9 @@ async function main(): Promise<void> {
     cycle += 1;
     const summary = await scanRoundTrips({
       connection,
-      jupiter
+      jupiter,
+      raydium,
+      orca
     });
 
     const entry = {
