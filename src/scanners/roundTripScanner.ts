@@ -1,6 +1,7 @@
 import type { Connection } from "@solana/web3.js";
 
 import { JupiterClient } from "../adapters/jupiterClient.js";
+import { MeteoraClient, type MeteoraQuote } from "../adapters/meteoraClient.js";
 import { OrcaClient, type OrcaQuote } from "../adapters/orcaClient.js";
 import { RaydiumClient, type RaydiumQuote } from "../adapters/raydiumClient.js";
 import { getMedianPriorityFeeLamports } from "../adapters/solanaRpc.js";
@@ -13,7 +14,11 @@ const BASE_RPC_FEE_LAMPORTS = 5_000n;
 const DEFAULT_JITO_TIP_LAMPORTS = 1_000n;
 const DIRECT_ROUTES: Array<readonly [ScannerVenue, ScannerVenue]> = [
   ["raydium", "orca"],
-  ["orca", "raydium"]
+  ["orca", "raydium"],
+  ["raydium", "meteora"],
+  ["meteora", "raydium"],
+  ["orca", "meteora"],
+  ["meteora", "orca"]
 ] as const;
 
 type NormalizedQuote = {
@@ -27,6 +32,8 @@ export async function scanRoundTrips(params: {
   jupiter: JupiterClient;
   raydium: RaydiumClient;
   orca: OrcaClient;
+  meteora: MeteoraClient;
+  minNetProfitUsd?: number;
 }): Promise<{
   checkedAt: string;
   tokenUsd: TokenUsdPrices;
@@ -62,6 +69,8 @@ async function scanSingleMarket(
     jupiter: JupiterClient;
     raydium: RaydiumClient;
     orca: OrcaClient;
+    meteora: MeteoraClient;
+    minNetProfitUsd?: number;
   },
   market: RoundTripMarket,
   inputAmount: bigint,
@@ -108,7 +117,7 @@ async function scanSingleMarket(
       safetyBufferUsd: env.SAFETY_BUFFER_USD
     });
 
-    if (netProfitUsd < env.MIN_NET_PROFIT_USD) {
+    if (netProfitUsd < (clients.minNetProfitUsd ?? env.MIN_NET_PROFIT_USD)) {
       return null;
     }
 
@@ -138,6 +147,7 @@ async function getNormalizedQuote(
     jupiter: JupiterClient;
     raydium: RaydiumClient;
     orca: OrcaClient;
+    meteora: MeteoraClient;
   },
   venue: ScannerVenue,
   params: {
@@ -155,6 +165,11 @@ async function getNormalizedQuote(
   if (venue === "orca") {
     const quote = await clients.orca.getQuote(params);
     return normalizeOrcaQuote(quote);
+  }
+
+  if (venue === "meteora") {
+    const quote = await clients.meteora.getQuote(params);
+    return normalizeMeteoraQuote(quote);
   }
 
   const quote = await clients.raydium.getQuote(params);
@@ -180,6 +195,14 @@ function normalizeRaydiumQuote(quote: RaydiumQuote): NormalizedQuote {
 function normalizeOrcaQuote(quote: OrcaQuote): NormalizedQuote {
   return {
     venue: "orca",
+    outAmount: BigInt(quote.outAmount),
+    conservativeOutAmount: BigInt(quote.otherAmountThreshold || quote.outAmount)
+  };
+}
+
+function normalizeMeteoraQuote(quote: MeteoraQuote): NormalizedQuote {
+  return {
+    venue: "meteora",
     outAmount: BigInt(quote.outAmount),
     conservativeOutAmount: BigInt(quote.otherAmountThreshold || quote.outAmount)
   };

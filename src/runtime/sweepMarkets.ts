@@ -1,4 +1,4 @@
-import { appendFile, mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { JupiterClient } from "../adapters/jupiterClient.js";
@@ -10,12 +10,7 @@ import { env } from "../config/env.js";
 import { scanRoundTrips } from "../scanners/roundTripScanner.js";
 
 const ARTIFACTS_DIR = join(process.cwd(), "artifacts");
-const LATEST_PATH = join(ARTIFACTS_DIR, "watch-scan-latest.json");
-const JOURNAL_PATH = join(ARTIFACTS_DIR, "watch-scan.jsonl");
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const OUTPUT_PATH = join(ARTIFACTS_DIR, "market-sweep.json");
 
 async function main(): Promise<void> {
   const connection = createSolanaConnection();
@@ -23,33 +18,19 @@ async function main(): Promise<void> {
   const raydium = new RaydiumClient(env.RAYDIUM_API_BASE_URL);
   const orca = new OrcaClient(env.ORCA_API_BASE_URL, env.SOLANA_RPC_URL);
   const meteora = new MeteoraClient(env.METEORA_API_BASE_URL, env.SOLANA_RPC_URL);
+
+  const result = await scanRoundTrips({
+    connection,
+    jupiter,
+    raydium,
+    orca,
+    meteora,
+    minNetProfitUsd: -1_000
+  });
+
   await mkdir(ARTIFACTS_DIR, { recursive: true });
-
-  let cycle = 0;
-  while (true) {
-    cycle += 1;
-    const summary = await scanRoundTrips({
-      connection,
-      jupiter,
-      raydium,
-      orca,
-      meteora
-    });
-
-    const entry = {
-      timestamp: new Date().toISOString(),
-      cycle,
-      status: summary.best ? "candidate" : "no_candidate",
-      best: summary.best,
-      tokenUsd: summary.tokenUsd
-    };
-
-    await appendFile(JOURNAL_PATH, `${JSON.stringify(entry)}\n`, "utf8");
-    await writeFile(LATEST_PATH, `${JSON.stringify(entry, null, 2)}\n`, "utf8");
-    console.log(JSON.stringify(entry));
-
-    await sleep(15_000);
-  }
+  await writeFile(OUTPUT_PATH, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  console.log(JSON.stringify(result, null, 2));
 }
 
 main().catch((error) => {

@@ -12,6 +12,7 @@ const envSchema = z.object({
   JUPITER_API_KEY: z.string().default(""),
   RAYDIUM_API_BASE_URL: z.string().url().default("https://transaction-v1.raydium.io"),
   ORCA_API_BASE_URL: z.string().url().default("https://api.orca.so/v2/solana"),
+  METEORA_API_BASE_URL: z.string().url().default("https://dlmm.datapi.meteora.ag"),
   MIN_NET_PROFIT_USD: z.coerce.number().min(0).default(0),
   SAFETY_BUFFER_USD: z.coerce.number().min(0).default(0.05),
   PRIORITY_FEE_MULTIPLIER: z.coerce.number().positive().default(1.2),

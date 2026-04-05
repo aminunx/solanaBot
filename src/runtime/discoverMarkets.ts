@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { createSolanaConnection, getMedianPriorityFeeLamports } from "../adapters/solanaRpc.js";
 import { JupiterClient } from "../adapters/jupiterClient.js";
+import { MeteoraClient } from "../adapters/meteoraClient.js";
 import { OrcaClient } from "../adapters/orcaClient.js";
 import { RaydiumClient } from "../adapters/raydiumClient.js";
 import { TOKENS } from "../config/addresses.js";
@@ -30,6 +31,7 @@ async function main(): Promise<void> {
   const jupiter = new JupiterClient(env.JUPITER_API_BASE_URL, env.JUPITER_API_KEY);
   const raydium = new RaydiumClient(env.RAYDIUM_API_BASE_URL);
   const orca = new OrcaClient(env.ORCA_API_BASE_URL, env.SOLANA_RPC_URL);
+  const meteora = new MeteoraClient(env.METEORA_API_BASE_URL, env.SOLANA_RPC_URL);
 
   const [tokenUsd, priorityFeeLamports, topTokens] = await Promise.all([
     jupiter.deriveTokenUsdPrices(),
@@ -39,7 +41,7 @@ async function main(): Promise<void> {
 
   const rows: Array<Record<string, unknown>> = [];
   for (const token of topTokens) {
-    rows.push(...(await evaluateToken(token, raydium, orca, tokenUsd, priorityFeeLamports)));
+    rows.push(...(await evaluateToken(token, raydium, orca, meteora, tokenUsd, priorityFeeLamports)));
   }
 
   rows.sort((left, right) => Number(right.netProfitUsd ?? -Infinity) - Number(left.netProfitUsd ?? -Infinity));
@@ -81,6 +83,7 @@ async function evaluateToken(
   token: TopToken,
   raydium: RaydiumClient,
   orca: OrcaClient,
+  meteora: MeteoraClient,
   tokenUsd: Record<string, number>,
   priorityFeeLamports: bigint
 ): Promise<Array<Record<string, unknown>>> {
@@ -89,82 +92,169 @@ async function evaluateToken(
     { symbol: "SOL", mint: TOKENS.SOL.mint, amount: 100_000_000n, decimals: TOKENS.SOL.decimals },
     { symbol: "USDC", mint: TOKENS.USDC.mint, amount: 10_000_000n, decimals: TOKENS.USDC.decimals }
   ]) {
-    const routes: Array<Record<string, unknown>> = [];
-
-    try {
-      const buyRaydium = await raydium.getQuote({
-        inputMint: base.mint,
-        outputMint: token.id,
-        amount: base.amount,
-        slippageBps: env.SCANNER_SLIPPAGE_BPS
-      });
-      const sellOrca = await orca.getQuote({
-        inputMint: token.id,
-        outputMint: base.mint,
-        amount: BigInt(buyRaydium.data.otherAmountThreshold || buyRaydium.data.outputAmount),
-        slippageBps: env.SCANNER_SLIPPAGE_BPS
-      });
-      routes.push(
-        buildRouteRow({
-          market: `${base.symbol}/${token.symbol}/${base.symbol}`,
-          buyVenue: "raydium",
-          sellVenue: "orca",
-          inputAmount: base.amount,
-          finalAmount: BigInt(sellOrca.otherAmountThreshold),
-          baseDecimals: base.decimals,
-          baseUsd: tokenUsd[base.symbol],
-          solUsd: tokenUsd.SOL,
-          priorityFeeLamports
-        })
-      );
-    } catch (error) {
-      routes.push({
-        market: `${base.symbol}/${token.symbol}/${base.symbol}`,
+    rows.push(
+      ...(await evaluateRoute({
+        token,
+        base,
         buyVenue: "raydium",
         sellVenue: "orca",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-
-    try {
-      const buyOrca = await orca.getQuote({
-        inputMint: base.mint,
-        outputMint: token.id,
-        amount: base.amount,
-        slippageBps: env.SCANNER_SLIPPAGE_BPS
-      });
-      const sellRaydium = await raydium.getQuote({
-        inputMint: token.id,
-        outputMint: base.mint,
-        amount: BigInt(buyOrca.otherAmountThreshold),
-        slippageBps: env.SCANNER_SLIPPAGE_BPS
-      });
-      routes.push(
-        buildRouteRow({
-          market: `${base.symbol}/${token.symbol}/${base.symbol}`,
-          buyVenue: "orca",
-          sellVenue: "raydium",
-          inputAmount: base.amount,
-          finalAmount: BigInt(sellRaydium.data.otherAmountThreshold || sellRaydium.data.outputAmount),
-          baseDecimals: base.decimals,
-          baseUsd: tokenUsd[base.symbol],
-          solUsd: tokenUsd.SOL,
-          priorityFeeLamports
-        })
-      );
-    } catch (error) {
-      routes.push({
-        market: `${base.symbol}/${token.symbol}/${base.symbol}`,
+        raydium,
+        orca,
+        meteora,
+        tokenUsd,
+        priorityFeeLamports
+      })),
+      ...(await evaluateRoute({
+        token,
+        base,
         buyVenue: "orca",
         sellVenue: "raydium",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-
-    rows.push(...routes);
+        raydium,
+        orca,
+        meteora,
+        tokenUsd,
+        priorityFeeLamports
+      })),
+      ...(await evaluateRoute({
+        token,
+        base,
+        buyVenue: "raydium",
+        sellVenue: "meteora",
+        raydium,
+        orca,
+        meteora,
+        tokenUsd,
+        priorityFeeLamports
+      })),
+      ...(await evaluateRoute({
+        token,
+        base,
+        buyVenue: "meteora",
+        sellVenue: "raydium",
+        raydium,
+        orca,
+        meteora,
+        tokenUsd,
+        priorityFeeLamports
+      })),
+      ...(await evaluateRoute({
+        token,
+        base,
+        buyVenue: "orca",
+        sellVenue: "meteora",
+        raydium,
+        orca,
+        meteora,
+        tokenUsd,
+        priorityFeeLamports
+      })),
+      ...(await evaluateRoute({
+        token,
+        base,
+        buyVenue: "meteora",
+        sellVenue: "orca",
+        raydium,
+        orca,
+        meteora,
+        tokenUsd,
+        priorityFeeLamports
+      }))
+    );
   }
 
   return rows;
+}
+
+async function evaluateRoute(params: {
+  token: TopToken;
+  base: { symbol: string; mint: string; amount: bigint; decimals: number };
+  buyVenue: "raydium" | "orca" | "meteora";
+  sellVenue: "raydium" | "orca" | "meteora";
+  raydium: RaydiumClient;
+  orca: OrcaClient;
+  meteora: MeteoraClient;
+  tokenUsd: Record<string, number>;
+  priorityFeeLamports: bigint;
+}): Promise<Array<Record<string, unknown>>> {
+  try {
+    const buyQuote = await quoteOnVenue(params.buyVenue, params, params.base.mint, params.token.id, params.base.amount);
+    const sellQuote = await quoteOnVenue(
+      params.sellVenue,
+      params,
+      params.token.id,
+      params.base.mint,
+      buyQuote.conservativeOutAmount
+    );
+
+    return [
+      buildRouteRow({
+        market: `${params.base.symbol}/${params.token.symbol}/${params.base.symbol}`,
+        buyVenue: params.buyVenue,
+        sellVenue: params.sellVenue,
+        inputAmount: params.base.amount,
+        finalAmount: sellQuote.conservativeOutAmount,
+        baseDecimals: params.base.decimals,
+        baseUsd: params.tokenUsd[params.base.symbol],
+        solUsd: params.tokenUsd.SOL,
+        priorityFeeLamports: params.priorityFeeLamports
+      })
+    ];
+  } catch (error) {
+    return [
+      {
+        market: `${params.base.symbol}/${params.token.symbol}/${params.base.symbol}`,
+        buyVenue: params.buyVenue,
+        sellVenue: params.sellVenue,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    ];
+  }
+}
+
+async function quoteOnVenue(
+  venue: "raydium" | "orca" | "meteora",
+  clients: {
+    raydium: RaydiumClient;
+    orca: OrcaClient;
+    meteora: MeteoraClient;
+  },
+  inputMint: string,
+  outputMint: string,
+  amount: bigint
+): Promise<{ conservativeOutAmount: bigint }> {
+  if (venue === "raydium") {
+    const quote = await clients.raydium.getQuote({
+      inputMint,
+      outputMint,
+      amount,
+      slippageBps: env.SCANNER_SLIPPAGE_BPS
+    });
+    return {
+      conservativeOutAmount: BigInt(quote.data.otherAmountThreshold || quote.data.outputAmount)
+    };
+  }
+
+  if (venue === "orca") {
+    const quote = await clients.orca.getQuote({
+      inputMint,
+      outputMint,
+      amount,
+      slippageBps: env.SCANNER_SLIPPAGE_BPS
+    });
+    return {
+      conservativeOutAmount: BigInt(quote.otherAmountThreshold || quote.outAmount)
+    };
+  }
+
+  const quote = await clients.meteora.getQuote({
+    inputMint,
+    outputMint,
+    amount,
+    slippageBps: env.SCANNER_SLIPPAGE_BPS
+  });
+  return {
+    conservativeOutAmount: BigInt(quote.otherAmountThreshold || quote.outAmount)
+  };
 }
 
 function buildRouteRow(params: {

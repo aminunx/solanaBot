@@ -100,11 +100,16 @@ describe("scanRoundTrips", () => {
       })
     };
 
+    const meteora = {
+      getQuote: vi.fn().mockRejectedValue(new Error("unsupported meteora quote"))
+    };
+
     const result = await scanRoundTrips({
       connection: {} as Connection,
       jupiter: jupiter as never,
       raydium: raydium as never,
-      orca: orca as never
+      orca: orca as never,
+      meteora: meteora as never
     });
 
     expect(result.best).not.toBeNull();
