@@ -40,6 +40,11 @@ export class RaydiumClient {
       throw new Error(`Raydium quote HTTP ${response.status}: ${await response.text()}`);
     }
 
-    return response.json() as Promise<RaydiumQuote>;
+    const quote = (await response.json()) as RaydiumQuote;
+    if (!quote.success || !quote.data?.outputAmount) {
+      throw new Error(`Raydium returned no executable quote for ${params.inputMint}/${params.outputMint}`);
+    }
+
+    return quote;
   }
 }

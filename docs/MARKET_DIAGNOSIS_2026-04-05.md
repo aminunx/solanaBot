@@ -26,6 +26,14 @@ Examples:
   - `raydium->orca`: about `-281,629` lamports
   - `orca->raydium`: about `-247,357` lamports
 
+Extended discovery across current top-traded verified tokens also remained negative on the best supported pairs.
+
+Examples from the discovery pass:
+- `SOL/JLP/SOL`: about `-0.0705 USD` net
+- `SOL/JUP/SOL`: about `-0.0747 USD` net
+- `USDC/cbBTC/USDC`: about `-0.0807 USD` net
+- `SOL/PUMP/SOL`: about `-0.0825 USD` net
+
 ## Practical Conclusion
 The current blocker is not code correctness. The blocker is market structure:
 - direct Raydium<->Orca round trips on the currently scanned pairs are not positive enough

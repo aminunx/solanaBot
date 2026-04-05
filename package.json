@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "scan:live": "tsx src/runtime/scan.ts",
+    "discover:markets": "tsx src/runtime/discoverMarkets.ts",
     "execute:prepare": "tsx src/runtime/prepareExecution.ts",
     "watch:scan": "tsx src/runtime/watchScan.ts"
   },

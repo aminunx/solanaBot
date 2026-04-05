@@ -71,7 +71,7 @@ export class OrcaClient {
       return this.poolCache.get(cacheKey) ?? null;
     }
 
-    const url = new URL("/pools/search", this.apiBaseUrl);
+    const url = new URL("pools/search", ensureTrailingSlash(this.apiBaseUrl));
     url.searchParams.set("tokenA", inputMint);
     url.searchParams.set("tokenB", outputMint);
 
@@ -104,4 +104,8 @@ function pairMatches(pool: OrcaPool, inputMint: string, outputMint: string): boo
   const poolTokens = [pool.tokenMintA, pool.tokenMintB].sort();
   const target = [inputMint, outputMint].sort();
   return poolTokens[0] === target[0] && poolTokens[1] === target[1];
+}
+
+function ensureTrailingSlash(value: string): string {
+  return value.endsWith("/") ? value : `${value}/`;
 }
