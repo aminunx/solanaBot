@@ -11,10 +11,13 @@ export type JupiterQuote = {
 };
 
 export type TokenUsdPrices = Record<string, number>;
+export type ScannerVenue = "jupiter" | "raydium" | "orca" | "meteora";
 
 export type RoundTripCandidate = {
   marketId: string;
   market: string;
+  buyVenue: ScannerVenue;
+  sellVenue: ScannerVenue;
   inputSymbol: string;
   midSymbol: string;
   inputAmountRaw: string;

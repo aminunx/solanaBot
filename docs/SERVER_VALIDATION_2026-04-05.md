@@ -1,4 +1,4 @@
-# Solana Bot Server Validation — 2026-04-05
+# Solana Bot Server Validation - 2026-04-05
 
 ## Environment
 - host: Lightning server
@@ -26,22 +26,12 @@ pnpm execute:prepare
 - live scan: passed
 - execution preflight: passed
 
-## Live Market Result
-The live scan completed against Solana mainnet and returned:
+## Operational Findings
+1. Public Solana RPC returned `429` when account-heavy quoting was repeated too aggressively.
+2. `https://solana-rpc.publicnode.com` works as a stronger live-read RPC than the default public Solana endpoint for Orca quote construction.
+3. Direct Raydium<->Orca markets are now being scanned instead of aggregator-vs-aggregator routes.
 
-```json
-{
-  "rows": [],
-  "best": null
-}
-```
+## Market Finding
+The current server-side task is no longer "make the scanner run." It already runs.
 
-This means no candidate satisfied the current no-loss admission law in that market window.
-
-## Operational Finding
-Public Solana RPC returned `429` responses when priority-fee samples were fetched too often.
-
-Fix applied:
-- fetch prioritization-fee samples once per scan cycle, not once per market task
-
-This reduces pressure on the public RPC and better matches real server-side operation.
+The current task is "find a direct market surface that is positive after conservative fees." That requires continued market expansion, not blind sender-path activation.

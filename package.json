@@ -9,10 +9,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "scan:live": "tsx src/runtime/scan.ts",
+    "discover:markets": "tsx src/runtime/discoverMarkets.ts",
+    "sweep:markets": "tsx src/runtime/sweepMarkets.ts",
     "execute:prepare": "tsx src/runtime/prepareExecution.ts",
     "watch:scan": "tsx src/runtime/watchScan.ts"
   },
   "dependencies": {
+    "@meteora-ag/dlmm": "^1.9.4",
+    "@orca-so/whirlpools": "^7.0.2",
+    "@solana/kit": "^5.5.1",
     "@solana/web3.js": "^1.98.4",
     "dotenv": "^17.3.1",
     "zod": "^4.1.11"
